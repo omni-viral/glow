@@ -103,8 +103,13 @@ fn main() {
             r#"precision mediump float;
             in vec2 vert;
             out vec4 color;
+
+            uniform UBO {
+                vec4 ucolor;
+            };
+
             void main() {
-                color = vec4(vert, 0.5, 1.0);
+                color = ucolor;
             }"#,
         );
 
@@ -140,6 +145,17 @@ fn main() {
 
         gl.use_program(Some(program));
         gl.clear_color(0.1, 0.2, 0.3, 1.0);
+
+        let uniform = gl.create_buffer().unwrap();
+        gl.bind_buffer(glow::UNIFORM_BUFFER, Some(uniform));
+
+        let offset = 65536; // It breaks at this offset. Subtract 256 and it will work.
+
+        gl.buffer_data_size(glow::UNIFORM_BUFFER, offset + 16, glow::STATIC_READ);
+
+        let ucolor = [1.0f32, 0.5f32, 0.3f32, 1.0f32];
+        gl.buffer_sub_data_u8_slice(glow::UNIFORM_BUFFER, offset, std::slice::from_raw_parts(ucolor.as_ptr() as _, 16));
+        gl.bind_buffer_range(glow::UNIFORM_BUFFER, 0, Some(uniform), offset, 16);
 
         render_loop.run(move |running: &mut bool| {
             // Handle events differently between targets
